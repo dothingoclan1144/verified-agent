@@ -1,0 +1,70 @@
+const express = require("express");
+const crypto = require("crypto");
+
+const app = express();
+app.use(express.json());
+
+// Fake database
+let users = {};
+let otpStore = {};
+
+// 📌 Generate OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// 🚀 Register user
+app.post("/register", (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  const otp = generateOTP();
+
+  users[email] = { verified: false };
+  otpStore[email] = otp;
+
+  console.log(`OTP for ${email}: ${otp}`); // gửi qua email/SMS ngoài đời
+
+  res.json({
+    message: "OTP sent successfully",
+  });
+});
+
+// ✅ Verify OTP
+app.post("/verify", (req, res) => {
+  const { email, otp } = req.body;
+
+  if (otpStore[email] === otp) {
+    users[email].verified = true;
+    delete otpStore[email];
+
+    return res.json({
+      message: "User verified successfully ✅",
+    });
+  }
+
+  res.status(400).json({
+    message: "Invalid OTP ❌",
+  });
+});
+
+// 🔍 Check status
+app.get("/status/:email", (req, res) => {
+  const user = users[req.params.email];
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  res.json({
+    verified: user.verified,
+  });
+});
+
+// Start server
+app.listen(3000, () => {
+  console.log("Server running on port 3000 🚀");
+});
